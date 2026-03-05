@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+raw_audio/
+inputs/
+*.m4a
+*.mp3
+*.wav
+*.log
