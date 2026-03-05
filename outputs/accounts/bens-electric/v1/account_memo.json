@@ -1,0 +1,78 @@
+{
+  "account_id": "bens-electric",
+  "version": "v1",
+  "source": "demo_call",
+  "created_at": "2025-03-01T10:32:11.000Z",
+  "updated_at": "2025-03-01T10:32:11.000Z",
+
+  "company_name": "Ben's Electric Solutions",
+  "primary_contact_name": "Ben",
+  "primary_contact_email": "info@benselectricsolutionsteam.com",
+  "primary_contact_phone": null,
+  "office_address": null,
+  "service_locations": ["Calgary", "Alberta"],
+  "industry": "Electrical Contractor",
+  "crm_system": "Jobber",
+
+  "business_hours": {
+    "timezone": null,
+    "days": ["Monday-Friday"],
+    "start": null,
+    "end": null
+  },
+
+  "services_supported": [
+    "Residential electrical",
+    "Commercial electrical",
+    "Panel upgrades",
+    "Emergency electrical repairs",
+    "EV charger installation"
+  ],
+  "services_not_supported": [],
+
+  "call_volume_estimate": "20-30 calls per week",
+  "team_size": "4 technicians",
+
+  "emergency_definition": [
+    "Power outage",
+    "Sparking or burning smell from panel",
+    "Electrical fire",
+    "Live wire exposed"
+  ],
+
+  "emergency_routing_rules": {
+    "primary_contact": "Ben (owner)",
+    "fallback_1": null,
+    "fallback_2": null,
+    "after_hours_emergency": "Attempt to reach Ben directly, leave urgent voicemail if no answer"
+  },
+
+  "non_emergency_routing_rules": {
+    "during_hours": "Take name and number, transfer to office or book callback",
+    "after_hours": "Collect details, confirm follow-up next business day"
+  },
+
+  "call_transfer_rules": {
+    "transfer_timeout_seconds": null,
+    "retries": null,
+    "on_transfer_fail": "Apologize and assure callback within 1 business hour"
+  },
+
+  "vip_numbers": [],
+
+  "integration_constraints": [],
+
+  "after_hours_flow_summary": "Greet caller, confirm if emergency, if yes collect name/number/address and attempt transfer to Ben. If not emergency, collect details and confirm next-day callback.",
+  "office_hours_flow_summary": "Greet caller, ask purpose, collect name and callback number, attempt transfer to available technician or office.",
+
+  "questions_or_unknowns": [
+    "Business hours start and end times not confirmed",
+    "Timezone not specified",
+    "Office address not provided",
+    "Transfer timeout duration not discussed",
+    "Fallback contact if Ben is unavailable not confirmed",
+    "Primary phone number for Ben not provided"
+  ],
+
+  "notes": "Ben expressed strong interest in automating after-hours calls. Currently missing calls overnight. Demo went well — he liked the emergency detection flow."
+}

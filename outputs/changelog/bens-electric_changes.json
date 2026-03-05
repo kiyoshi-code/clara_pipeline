@@ -1,0 +1,73 @@
+{
+  "account_id": "bens-electric",
+  "upgraded_at": "2025-03-04T14:18:22.000Z",
+  "from_version": "v1",
+  "to_version": "v2",
+  "total_changes": 9,
+
+  "changes": [
+    {
+      "field": "primary_contact_phone",
+      "old_value": null,
+      "new_value": "403-870-8494",
+      "reason": "Ben provided his direct cell number during onboarding call"
+    },
+    {
+      "field": "business_hours.timezone",
+      "old_value": null,
+      "new_value": "America/Edmonton (MST)",
+      "reason": "Confirmed during onboarding — Calgary is Mountain Standard Time"
+    },
+    {
+      "field": "business_hours.start",
+      "old_value": null,
+      "new_value": "8:00 AM",
+      "reason": "Ben confirmed office opens at 8 AM on the onboarding call"
+    },
+    {
+      "field": "business_hours.end",
+      "old_value": null,
+      "new_value": "5:00 PM",
+      "reason": "Ben confirmed office closes at 5 PM on the onboarding call"
+    },
+    {
+      "field": "office_address",
+      "old_value": null,
+      "new_value": "Calgary, Alberta, Canada",
+      "reason": "Location confirmed during onboarding — full street address still TBD"
+    },
+    {
+      "field": "emergency_routing_rules.primary_contact",
+      "old_value": "Ben (owner)",
+      "new_value": "Ben (owner) — 403-870-8494",
+      "reason": "Phone number now confirmed and added to routing rule"
+    },
+    {
+      "field": "emergency_routing_rules.after_hours_emergency",
+      "old_value": "Attempt to reach Ben directly, leave urgent voicemail if no answer",
+      "new_value": "Attempt Ben's cell first. If no answer within 30 seconds, attempt on-call technician. If both fail, leave urgent voicemail and assure callback within 30 minutes.",
+      "reason": "Onboarding confirmed 30-second timeout and two-step fallback process"
+    },
+    {
+      "field": "call_transfer_rules.transfer_timeout_seconds",
+      "old_value": null,
+      "new_value": 30,
+      "reason": "Ben agreed to 30-second transfer timeout during onboarding"
+    },
+    {
+      "field": "emergency_definition",
+      "old_value": ["Power outage", "Sparking or burning smell from panel", "Electrical fire", "Live wire exposed"],
+      "new_value": ["Power outage", "Sparking or burning smell from panel", "Electrical fire", "Live wire exposed", "Tripped breaker that won't reset"],
+      "reason": "Ben added 'tripped breaker that won't reset' as an emergency trigger during onboarding"
+    }
+  ],
+
+  "conflicts": [
+    {
+      "field": "call_transfer_rules.on_transfer_fail",
+      "v1_value": "Apologize and assure callback within 1 business hour",
+      "onboarding_value": "1 hour during business hours, 30 minutes for after-hours emergencies",
+      "resolution": "Used onboarding value — more specific and operationally accurate"
+    }
+  ]
+}

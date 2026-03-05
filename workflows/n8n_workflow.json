@@ -1,0 +1,240 @@
+{
+  "name": "Clara Answers — Full Automation Pipeline",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [100, 300],
+      "parameters": {}
+    },
+    {
+      "id": "2",
+      "name": "Watch raw_audio Folder",
+      "type": "n8n-nodes-base.localFileTrigger",
+      "typeVersion": 1,
+      "position": [300, 300],
+      "parameters": {
+        "path": "./raw_audio",
+        "events": ["add"],
+        "recursive": false
+      },
+      "notes": "Watches for new .m4a or .mp3 files dropped into raw_audio/. Triggers pipeline automatically when a new recording arrives."
+    },
+    {
+      "id": "3",
+      "name": "Parse Filename",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [500, 300],
+      "parameters": {
+        "functionCode": "// Extract account_id and call_type from filename\n// e.g. bens_electric_demo.m4a → { account_id: 'bens_electric', call_type: 'demo' }\n\nconst filename = items[0].json.name;\nconst stem = filename.replace(/\\.[^/.]+$/, '');\n\nlet account_id, call_type;\n\nif (stem.endsWith('_demo')) {\n  account_id = stem.replace('_demo', '');\n  call_type = 'demo';\n} else if (stem.endsWith('_onboarding')) {\n  account_id = stem.replace('_onboarding', '');\n  call_type = 'onboarding';\n} else {\n  account_id = stem;\n  call_type = 'demo';\n}\n\nreturn [{ json: { ...items[0].json, account_id, call_type, filename } }];"
+      },
+      "notes": "Parses the filename to extract account_id and call_type. Sets up routing for Pipeline A or B."
+    },
+    {
+      "id": "4",
+      "name": "Route: Demo or Onboarding?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [700, 300],
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{$json.call_type}}",
+        "rules": {
+          "rules": [
+            { "value2": "demo", "output": 0 },
+            { "value2": "onboarding", "output": 1 }
+          ]
+        }
+      },
+      "notes": "Routes to Pipeline A (demo → v1) or Pipeline B (onboarding → v2)"
+    },
+    {
+      "id": "5",
+      "name": "Transcribe Audio (Groq Whisper)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [900, 200],
+      "parameters": {
+        "command": "python scripts/transcribe.py --file raw_audio/{{$json.filename}} --account {{$json.account_id}} --type {{$json.call_type}}"
+      },
+      "notes": "Pipeline A Step 1: Runs transcribe.py on the demo audio file. Pyannote detects speakers, Groq Whisper converts speech to text. Output saved to inputs/<account_id>_demo.txt"
+    },
+    {
+      "id": "6",
+      "name": "Extract Account Memo (Groq LLM)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1100, 200],
+      "parameters": {
+        "command": "python scripts/extract_memo.py inputs/{{$json.account_id}}_demo.txt"
+      },
+      "notes": "Pipeline A Step 2: Groq LLM reads the transcript and extracts structured business info. Output: outputs/accounts/<account_id>/v1/account_memo.json"
+    },
+    {
+      "id": "7",
+      "name": "Generate Agent Spec v1 (Groq LLM)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1300, 200],
+      "parameters": {
+        "command": "python scripts/generate_agent_spec.py outputs/accounts/{{$json.account_id}}/v1/account_memo.json"
+      },
+      "notes": "Pipeline A Step 3: Groq LLM generates Clara's full phone script from the account memo. Output: outputs/accounts/<account_id>/v1/agent_spec.json"
+    },
+    {
+      "id": "8",
+      "name": "Save v1 Outputs to Storage",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1500, 200],
+      "parameters": {
+        "functionCode": "// Log completion of Pipeline A\nconst account_id = items[0].json.account_id;\nconst timestamp = new Date().toISOString();\n\nreturn [{\n  json: {\n    account_id,\n    pipeline: 'A',\n    status: 'complete',\n    v1_memo: `outputs/accounts/${account_id}/v1/account_memo.json`,\n    v1_spec: `outputs/accounts/${account_id}/v1/agent_spec.json`,\n    completed_at: timestamp\n  }\n}];"
+      },
+      "notes": "Logs completion of Pipeline A. In production, this node would push to Supabase, Airtable, or Google Sheets."
+    },
+    {
+      "id": "9",
+      "name": "Create Task in Tracker",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1700, 200],
+      "parameters": {
+        "functionCode": "// Mock task creation — replace with Asana/Trello/Notion API call\nconst account_id = items[0].json.account_id;\n\nconsole.log(`[TASK TRACKER] New task created:`);\nconsole.log(`  Title: Review v1 agent spec for ${account_id}`);\nconsole.log(`  Status: Pending onboarding`);\nconsole.log(`  Link: outputs/accounts/${account_id}/v1/agent_spec.json`);\n\nreturn items;"
+      },
+      "notes": "Creates a task in Asana/Trello/Notion to review the v1 agent spec. Mocked here — replace with actual API node when production access available."
+    },
+    {
+      "id": "10",
+      "name": "Transcribe Onboarding Audio",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [900, 400],
+      "parameters": {
+        "command": "python scripts/transcribe.py --file raw_audio/{{$json.filename}} --account {{$json.account_id}} --type onboarding"
+      },
+      "notes": "Pipeline B Step 1: Transcribes the onboarding call audio. Output saved to inputs/<account_id>_onboarding.txt"
+    },
+    {
+      "id": "11",
+      "name": "Check v1 Memo Exists",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1100, 400],
+      "parameters": {
+        "functionCode": "const fs = require('fs');\nconst account_id = items[0].json.account_id;\nconst v1_path = `outputs/accounts/${account_id}/v1/account_memo.json`;\n\nconst exists = fs.existsSync(v1_path);\n\nif (!exists) {\n  throw new Error(`v1 memo not found for ${account_id}. Run Pipeline A first.`);\n}\n\nreturn [{ json: { ...items[0].json, v1_memo_path: v1_path } }];"
+      },
+      "notes": "Safety check: ensures v1 memo exists before attempting to generate v2. Prevents orphaned v2 outputs."
+    },
+    {
+      "id": "12",
+      "name": "Update Memo to v2 (Groq LLM)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1300, 400],
+      "parameters": {
+        "command": "python scripts/update_memo.py outputs/accounts/{{$json.account_id}}/v1/account_memo.json inputs/{{$json.account_id}}_onboarding.txt"
+      },
+      "notes": "Pipeline B Step 2: Diffs v1 memo against onboarding transcript. Applies patch to produce v2 memo + changelog. Output: outputs/accounts/<account_id>/v2/account_memo.json + changelog/<account_id>_changes.json"
+    },
+    {
+      "id": "13",
+      "name": "Generate Agent Spec v2 (Groq LLM)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1500, 400],
+      "parameters": {
+        "command": "python scripts/generate_agent_spec.py outputs/accounts/{{$json.account_id}}/v2/account_memo.json"
+      },
+      "notes": "Pipeline B Step 3: Regenerates Clara's phone script from the updated v2 memo. Output: outputs/accounts/<account_id>/v2/agent_spec.json"
+    },
+    {
+      "id": "14",
+      "name": "Save v2 Outputs + Changelog",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1700, 400],
+      "parameters": {
+        "functionCode": "const account_id = items[0].json.account_id;\nconst timestamp = new Date().toISOString();\n\nreturn [{\n  json: {\n    account_id,\n    pipeline: 'B',\n    status: 'complete',\n    v2_memo: `outputs/accounts/${account_id}/v2/account_memo.json`,\n    v2_spec: `outputs/accounts/${account_id}/v2/agent_spec.json`,\n    changelog: `changelog/${account_id}_changes.json`,\n    completed_at: timestamp\n  }\n}];"
+      },
+      "notes": "Logs completion of Pipeline B. In production, this would update the account record in Supabase/Airtable with v2 status."
+    },
+    {
+      "id": "15",
+      "name": "Notify: Agent Ready for Retell",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1900, 400],
+      "parameters": {
+        "functionCode": "// Mock Retell notification — in production this calls Retell API\nconst account_id = items[0].json.account_id;\n\nconsole.log(`[RETELL] Agent spec v2 ready for import:`);\nconsole.log(`  Account: ${account_id}`);\nconsole.log(`  Spec: outputs/accounts/${account_id}/v2/agent_spec.json`);\nconsole.log(`  Action: Paste system_prompt into Retell UI`);\nconsole.log(`  Note: Retell API requires paid plan — manual import required on free tier`);\n\nreturn items;"
+      },
+      "notes": "Notifies team that v2 agent spec is ready to import into Retell. Mocked on free tier — with production Retell API access, this node would auto-create/update the agent via POST /agents."
+    },
+    {
+      "id": "16",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1100, 550],
+      "parameters": {
+        "functionCode": "const error = items[0].json.error || 'Unknown error';\nconst account_id = items[0].json.account_id || 'unknown';\n\nconsole.error(`[ERROR] Pipeline failed for account: ${account_id}`);\nconsole.error(`[ERROR] Reason: ${error}`);\nconsole.error(`[ERROR] Time: ${new Date().toISOString()}`);\n\nreturn [{\n  json: {\n    account_id,\n    status: 'failed',\n    error,\n    failed_at: new Date().toISOString()\n  }\n}];"
+      },
+      "notes": "Catches any pipeline failures and logs them cleanly. In production, this would send a Slack/email alert."
+    }
+  ],
+  "connections": {
+    "Watch raw_audio Folder": {
+      "main": [[{ "node": "Parse Filename", "type": "main", "index": 0 }]]
+    },
+    "Parse Filename": {
+      "main": [[{ "node": "Route: Demo or Onboarding?", "type": "main", "index": 0 }]]
+    },
+    "Route: Demo or Onboarding?": {
+      "main": [
+        [{ "node": "Transcribe Audio (Groq Whisper)", "type": "main", "index": 0 }],
+        [{ "node": "Transcribe Onboarding Audio", "type": "main", "index": 0 }]
+      ]
+    },
+    "Transcribe Audio (Groq Whisper)": {
+      "main": [[{ "node": "Extract Account Memo (Groq LLM)", "type": "main", "index": 0 }]]
+    },
+    "Extract Account Memo (Groq LLM)": {
+      "main": [[{ "node": "Generate Agent Spec v1 (Groq LLM)", "type": "main", "index": 0 }]]
+    },
+    "Generate Agent Spec v1 (Groq LLM)": {
+      "main": [[{ "node": "Save v1 Outputs to Storage", "type": "main", "index": 0 }]]
+    },
+    "Save v1 Outputs to Storage": {
+      "main": [[{ "node": "Create Task in Tracker", "type": "main", "index": 0 }]]
+    },
+    "Transcribe Onboarding Audio": {
+      "main": [[{ "node": "Check v1 Memo Exists", "type": "main", "index": 0 }]]
+    },
+    "Check v1 Memo Exists": {
+      "main": [[{ "node": "Update Memo to v2 (Groq LLM)", "type": "main", "index": 0 }]]
+    },
+    "Update Memo to v2 (Groq LLM)": {
+      "main": [[{ "node": "Generate Agent Spec v2 (Groq LLM)", "type": "main", "index": 0 }]]
+    },
+    "Generate Agent Spec v2 (Groq LLM)": {
+      "main": [[{ "node": "Save v2 Outputs + Changelog", "type": "main", "index": 0 }]]
+    },
+    "Save v2 Outputs + Changelog": {
+      "main": [[{ "node": "Notify: Agent Ready for Retell", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "Error Handler"
+  },
+  "meta": {
+    "description": "Clara Answers full automation pipeline. Pipeline A: demo call → v1 agent spec. Pipeline B: onboarding call → v2 agent spec + changelog. Zero cost using Groq free tier + local file storage.",
+    "version": "1.0.0",
+    "created_at": "2025-03-04",
+    "author": "Clara Answers Intern Assignment"
+  }
+}

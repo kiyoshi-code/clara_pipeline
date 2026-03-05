@@ -1,0 +1,78 @@
+{
+  "account_id": "bens-electric",
+  "version": "v2",
+  "source": "onboarding_call",
+  "created_at": "2025-03-01T10:32:11.000Z",
+  "updated_at": "2025-03-04T14:18:22.000Z",
+
+  "company_name": "Ben's Electric Solutions",
+  "primary_contact_name": "Ben",
+  "primary_contact_email": "info@benselectricsolutionsteam.com",
+  "primary_contact_phone": "403-870-8494",
+  "office_address": "Calgary, Alberta, Canada",
+  "service_locations": ["Calgary", "Alberta"],
+  "industry": "Electrical Contractor",
+  "crm_system": "Jobber",
+
+  "business_hours": {
+    "timezone": "America/Edmonton (MST)",
+    "days": ["Monday-Friday"],
+    "start": "8:00 AM",
+    "end": "5:00 PM"
+  },
+
+  "services_supported": [
+    "Residential electrical",
+    "Commercial electrical",
+    "Panel upgrades",
+    "Emergency electrical repairs",
+    "EV charger installation"
+  ],
+  "services_not_supported": ["Plumbing", "HVAC"],
+
+  "call_volume_estimate": "20-30 calls per week",
+  "team_size": "4 technicians",
+
+  "emergency_definition": [
+    "Power outage",
+    "Sparking or burning smell from panel",
+    "Electrical fire",
+    "Live wire exposed",
+    "Tripped breaker that won't reset"
+  ],
+
+  "emergency_routing_rules": {
+    "primary_contact": "Ben (owner) — 403-870-8494",
+    "fallback_1": "On-call technician — confirmed at onboarding",
+    "fallback_2": "Voicemail dispatch — urgent flag",
+    "after_hours_emergency": "Attempt Ben's cell first. If no answer within 30 seconds, attempt on-call technician. If both fail, leave urgent voicemail and assure callback within 30 minutes."
+  },
+
+  "non_emergency_routing_rules": {
+    "during_hours": "Take name and number, transfer to office line or book callback via Jobber",
+    "after_hours": "Collect name, number, and issue details. Confirm next business day callback. Log in Jobber."
+  },
+
+  "call_transfer_rules": {
+    "transfer_timeout_seconds": 30,
+    "retries": 1,
+    "on_transfer_fail": "Apologize and assure callback within 1 business hour during hours, or within 30 minutes for after-hours emergencies"
+  },
+
+  "vip_numbers": ["403-870-8494"],
+
+  "integration_constraints": [
+    "All calls must be logged in Jobber after completion",
+    "Do not create duplicate jobs — check existing open jobs first"
+  ],
+
+  "after_hours_flow_summary": "Greet caller, note office is closed, confirm if emergency. If emergency: collect name, number, and address immediately, attempt transfer to Ben then on-call tech. If non-emergency: collect details and confirm next-day callback via Jobber.",
+  "office_hours_flow_summary": "Greet caller, ask purpose, collect name and callback number, attempt live transfer. If transfer fails, take message and assure 1-hour callback. Log all calls in Jobber.",
+
+  "questions_or_unknowns": [
+    "On-call technician contact number not yet provided — needed before go-live",
+    "Exact Jobber workflow for after-hours logging not confirmed"
+  ],
+
+  "notes": "Onboarding call confirmed most key details. Ben is ready to go live once on-call technician number is provided. Transfer timeout set to 30 seconds as agreed."
+}
